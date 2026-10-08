@@ -1,14 +1,25 @@
-<!DOCTYPE html>
+
+   <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S.</title>
+    <title>SISTEMA J.A.R.V.I.S.</title>
+    <!-- Biblioteca das Ondas Holográficas -->
     <script src="https://unpkg.com"></script>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
     <style>
-        body { background-color: #030811; color: #00f0ff; font-family: 'Segoe UI', -apple-system, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        body {
+            background-color: #030811;
+            color: #00f0ff;
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
         #hud-container { text-align: center; z-index: 2; }
         h1 { font-size: 1.8rem; letter-spacing: 6px; text-transform: uppercase; text-shadow: 0 0 15px #00f0ff; margin-bottom: 5px; font-weight: 300; }
         #status { color: #8ab4f8; font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 30px; text-transform: uppercase; }
@@ -18,14 +29,18 @@
     </style>
 </head>
 <body>
+
     <div id="activation-overlay" onclick="startListening()"></div>
+
     <div id="hud-container">
         <h1>SISTEMA J.A.R.V.I.S.</h1>
         <div id="status">Pressione ESPAÇO ou Toque na tela para dar uma ordem...</div>
         <div id="jarvis-wave"></div>
-        <div id="transcription">Aguardando comandos, senhor...</div>
+        <div id="transcription">Aguardando ordens, senhor...</div>
     </div>
+
     <script>
+        // O código agora guarda sua chave de forma limpa e automática na memória!
         const GEMINI_API_KEY = localStorage.getItem("jarvis_gemini_key") || "";
 
         let siriWave;
@@ -36,6 +51,7 @@
             });
         } catch(e) {}
 
+        // Se você ainda não colou a chave, ele vai pedir em uma caixa na tela
         if(!GEMINI_API_KEY) {
             let key = prompt("Senhor, por favor insira sua chave do GOOGLE GEMINI para ativar meus sistemas:");
             if(key) { localStorage.setItem("jarvis_gemini_key", key); window.location.reload(); }
@@ -43,55 +59,71 @@
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
+
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
             recognition.lang = 'pt-BR';
+            
             recognition.onstart = () => {
                 document.getElementById('status').innerText = "» OUVINDO SENHOR... «";
                 if(siriWave) { siriWave.setAmplitude(1.6); siriWave.setSpeed(0.22); }
             };
+
             recognition.onresult = (event) => {
                 const comandoTexto = event.results[0][0].transcript;
                 document.getElementById('transcription').innerText = `"${comandoTexto}"`;
-                enviarParaGemini(comandoTexto);
+                enviarParaIA(comandoTexto);
             };
+
             recognition.onerror = () => { resetJarvisVisual(); };
             recognition.onend = () => { resetJarvisVisual(); };
         }
 
         function startListening() { if (recognition) { try { recognition.start(); } catch(e) {} } }
+        
         function resetJarvisVisual() {
             document.getElementById('status').innerText = "Pressione ESPAÇO ou Toque na tela para dar uma ordem...";
             if(siriWave) { siriWave.setAmplitude(0.1); siriWave.setSpeed(0.04); }
         }
 
-        window.addEventListener('keydown', (e) => { if (e.code === 'Space' && e.target === document.body) { e.preventDefault(); startListening(); } });
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && e.target === document.body) {
+                e.preventDefault();
+                startListening();
+            }
+        });
 
-        async function enviarParaGemini(comando) {
+        // FUNÇÃO DE CONEXÃO DIRETA SEM PROXY
+        async function enviarParaIA(comando) {
             if (!comando.toLowerCase().includes("jarvis")) {
-                document.getElementById('transcription').innerText = "Por favor, chame meu nome (Jarvis), senhor.";
+                document.getElementById('transcription').innerText = "Por favor, inicie a frase chamando meu nome (Jarvis), senhor.";
                 falar("Por favor, chame meu nome para que eu execute, senhor.");
                 return;
             }
+
             document.getElementById('status').innerText = "» PROCESSANDO DADOS... «";
+
             try {
-                // Linha corrigida usando um proxy de conexão para evitar a trava de segurança do tablet
-                const url = `https://herokuapp.com{GEMINI_API_KEY}`;
+                // Link de conexão direta com o endpoint oficial do Gemini da Google
+                const url = `https://googleapis.com{GEMINI_API_KEY}`;
                 
                 const response = await fetch(url, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: "Você é o J.A.R.V.I.S., assistente virtual do Homem de Ferro. Responda em português, de forma extremamente educada, usando um tom britânico refinado e sempre chame o usuário de 'senhor'. Responda de forma direta e fluida para leitura por voz. Responda à seguinte ordem de estudo: " + comando }] }]
+                        contents: [{ parts: [{ text: "Você é o assistente virtual J.A.R.V.I.S. Responda em português, de forma extremamente refinada, inteligente, educada e sempre trate o usuário por 'senhor'. Responda de forma direta a seguinte pergunta de estudos: " + comando }] }]
                     })
                 });
+
                 const data = await response.json();
                 const respostaTexto = data.candidates[0].content.parts[0].text;
+                
                 document.getElementById('transcription').innerText = respostaTexto;
                 falar(respostaTexto);
+
             } catch (error) {
-                document.getElementById('transcription').innerText = "Falha de conexão com os servidores centrais da IA, senhor. Ative o acesso temporário em ://herokuapp.com se o erro persistir.";
-                falar("Houve uma falha de conexão com os servidores centrais, senhor.");
+                document.getElementById('transcription').innerText = "Processando requisição, senhor. Por favor, verifique a validade de sua chave do Gemini.";
+                falar("Sinto muito, senhor. Houve um impasse na validação da minha chave de acesso.");
             }
         }
 
@@ -106,4 +138,4 @@
     </script>
 </body>
 </html>
-   
+
