@@ -103,28 +103,29 @@
 
             document.getElementById('status').innerText = "» PROCESSANDO DADOS... «";
 
-            try {
-                // Link de conexão direta com o endpoint oficial do Gemini da Google
-                const url = `https://googleapis.com{GEMINI_API_KEY}`;
+                        try {
+                // Link oficial do Gemini do Google
+                const targetUrl = `https://googleapis.com{GEMINI_API_KEY}`;
                 
-                const response = await fetch(url, {
+                // Servidor ponte (Proxy) que desbloqueia a conexão de segurança no tablet
+                const proxyUrl = `https://allorigins.win{encodeURIComponent(targetUrl)}`;
+                
+                const response = await fetch(proxyUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: "Você é o assistente virtual J.A.R.V.I.S. Responda em português, de forma extremamente refinada, inteligente, educada e sempre trate o usuário por 'senhor'. Responda de forma direta a seguinte pergunta de estudos: " + comando }] }]
+                        contents: [{ parts: [{ text: "Você é o assistente virtual J.A.R.V.I.S. Responda em português, de forma curta, extremamente educada, usando um tom britânico e sempre trate o usuário por 'senhor'. Responda a seguinte pergunta de estudos: " + comando }] }]
                     })
                 });
 
-                const data = await response.json();
+                const rawData = await response.json();
+                // O AllOrigins traz o resultado como texto puro dentro de 'contents'
+                const data = JSON.parse(rawData.contents);
                 const respostaTexto = data.candidates[0].content.parts[0].text;
                 
                 document.getElementById('transcription').innerText = respostaTexto;
                 falar(respostaTexto);
 
-            } catch (error) {
-                document.getElementById('transcription').innerText = "Processando requisição, senhor. Por favor, verifique a validade de sua chave do Gemini.";
-                falar("Sinto muito, senhor. Houve um impasse na validação da minha chave de acesso.");
-            }
         }
 
         function falar(texto) {
